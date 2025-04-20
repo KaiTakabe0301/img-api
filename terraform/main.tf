@@ -1,14 +1,13 @@
-# S3 バケット（オリジナル画像 / 変換後画像）
+############################
+#  S3 バケット
+############################
 resource "aws_s3_bucket" "images" {
   bucket = "img-api-bucket"
 }
 
-# Lambda・IAM ロール
-resource "aws_iam_role" "lambda_role" {
-  name               = "img_api_lambda_role"
-  assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
-}
-
+############################
+#  IAM ロール + ポリシー
+############################
 data "aws_iam_policy_document" "lambda_assume" {
   statement {
     actions = ["sts:AssumeRole"]
@@ -19,97 +18,90 @@ data "aws_iam_policy_document" "lambda_assume" {
   }
 }
 
+resource "aws_iam_role" "lambda_role" {
+  name               = "img_api_lambda_role"
+  assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
+}
+
 resource "aws_iam_role_policy_attachment" "lambda_policy" {
   role       = aws_iam_role.lambda_role.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
 }
 
-# Lambda
+############################
+#  Lambda Functions
+############################
 resource "aws_lambda_function" "image_handler" {
   function_name = "img-api-handler"
   role          = aws_iam_role.lambda_role.arn
   runtime       = "nodejs20.x"
-  handler       = "src/handler.upload"            # POST 用
+  handler       = "src/handler.upload"
   filename      = data.archive_file.lambda_zip.output_path
   memory_size   = 512
   timeout       = 30
-  environment {
-    variables = {
-      BUCKET = aws_s3_bucket.images.bucket
-    }
-  }
+  environment { variables = { BUCKET = aws_s3_bucket.images.bucket } }
 }
 
-# もう一つ (GET) を別エントリポイントで
 resource "aws_lambda_function" "image_getter" {
   function_name = "img-api-getter"
   role          = aws_iam_role.lambda_role.arn
   runtime       = "nodejs20.x"
-  handler       = "src/handler.get"               # GET 用
+  handler       = "src/handler.get"
   filename      = data.archive_file.lambda_zip.output_path
   memory_size   = 512
   timeout       = 30
-  environment {
-    variables = {
-      BUCKET = aws_s3_bucket.images.bucket
+  environment { variables = { BUCKET = aws_s3_bucket.images.bucket } }
+}
+
+############################
+#  API Gateway モジュール
+############################
+module "apigw_v1" {
+    providers = {
+      aws = aws
     }
-  }
+  source              = "./modules/apigw_v1"
+  count               = var.use_localstack ? 1 : 0
+  name                = "img-api"
+  lambda_upload_uri   = aws_lambda_function.image_handler.invoke_arn
+  lambda_get_uri      = aws_lambda_function.image_getter.invoke_arn
 }
 
-# API Gateway
-resource "aws_apigatewayv2_api" "http_api" {
-  name          = "img-api"
-  protocol_type = "HTTP"
+module "apigw_v2" {
+
+    providers = {
+      aws = aws
+    }
+  source              = "./modules/apigw_v2"
+  count               = var.use_localstack ? 0 : 1
+  name                = "img-api"
+  lambda_upload_uri   = aws_lambda_function.image_handler.invoke_arn
+  lambda_get_uri      = aws_lambda_function.image_getter.invoke_arn
 }
 
-# ルート
-resource "aws_apigatewayv2_route" "post_route" {
-  api_id    = aws_apigatewayv2_api.http_api.id
-  route_key = "POST /images"
-  target    = "integrations/${aws_apigatewayv2_integration.post_integration.id}"
+############################
+#  共通値 (invoke URL / exec ARN)
+############################
+locals {
+  api_invoke_url  = var.use_localstack ? module.apigw_v1[0].invoke_url : module.apigw_v2[0].invoke_url
+  api_exec_arn    = var.use_localstack ? module.apigw_v1[0].execution_arn : module.apigw_v2[0].execution_arn
 }
 
-resource "aws_apigatewayv2_route" "get_route" {
-  api_id    = aws_apigatewayv2_api.http_api.id
-  route_key = "GET /images/{id}"
-  target    = "integrations/${aws_apigatewayv2_integration.get_integration.id}"
-}
-
-# Lambda 統合
-resource "aws_apigatewayv2_integration" "post_integration" {
-  api_id                 = aws_apigatewayv2_api.http_api.id
-  integration_type       = "AWS_PROXY"
-  integration_uri        = aws_lambda_function.image_handler.invoke_arn
-  payload_format_version = "2.0"
-}
-
-resource "aws_apigatewayv2_integration" "get_integration" {
-  api_id                 = aws_apigatewayv2_api.http_api.id
-  integration_type       = "AWS_PROXY"
-  integration_uri        = aws_lambda_function.image_getter.invoke_arn
-  payload_format_version = "2.0"
-}
-
-# デプロイ
-resource "aws_apigatewayv2_stage" "default" {
-  api_id      = aws_apigatewayv2_api.http_api.id
-  name        = "$default"
-  auto_deploy = true
-}
-
-# Lambda → API の権限付与
-resource "aws_lambda_permission" "allow_post" {
-  statement_id  = "AllowAPIGatewayInvokePost"
+############################
+#  Lambda Permissions
+############################
+resource "aws_lambda_permission" "allow_upload" {
+  statement_id  = "AllowInvokeUpload"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.image_handler.function_name
   principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_apigatewayv2_api.http_api.execution_arn}/*/*"
+  source_arn    = "${local.api_exec_arn}/*/*"
 }
 
 resource "aws_lambda_permission" "allow_get" {
-  statement_id  = "AllowAPIGatewayInvokeGet"
+  statement_id  = "AllowInvokeGet"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.image_getter.function_name
   principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_apigatewayv2_api.http_api.execution_arn}/*/*"
+  source_arn    = "${local.api_exec_arn}/*/*"
 }

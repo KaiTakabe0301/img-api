@@ -1,4 +1,5 @@
 terraform {
+  required_version = ">= 1.4"
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -8,18 +9,20 @@ terraform {
 }
 
 provider "aws" {
-  access_key = "test"
-  secret_key = "test"
-  region     = "us-east-1"
+  region            = var.use_localstack ? "us-east-1" : var.region
+  access_key        = var.use_localstack ? "test" : null
+  secret_key        = var.use_localstack ? "test" : null
+  s3_use_path_style = var.use_localstack
 
-  s3_use_path_style = true
-
-  endpoints {
-    s3         = "http://localhost:4566"
-    apigateway = "http://localhost:4566"
-    lambda     = "http://localhost:4566"
-    iam        = "http://localhost:4566"
-    sts        = "http://localhost:4566"
-    ecr        = "http://localhost:4566"
+  dynamic "endpoints" {
+    for_each = var.use_localstack ? toset([1]) : toset([])
+    content {
+      s3         = "http://localhost:4566"
+      lambda     = "http://localhost:4566"
+      apigateway = "http://localhost:4566"
+      iam        = "http://localhost:4566"
+      sts        = "http://localhost:4566"
+      ecr        = "http://localhost:4566"
+    }
   }
 }
