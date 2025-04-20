@@ -5,9 +5,9 @@ services:
     container_name: localstack
     ports:
       - "4566:4566" # すべてのサービス
-      - "4571:4571"
+      - "127.0.0.1:4510-4559:4510-4559" # external services port range
     environment:
-      - SERVICES=s3,lambda,apigateway,iam,sts,ecr
+      - SERVICES=s3,lambda,apigateway,iam,sts,ecr,logs,cloudformation
       - DEBUG=1
       - LAMBDA_EXECUTOR=docker
       - AWS_ACCESS_KEY_ID=test
