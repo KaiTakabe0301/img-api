@@ -1,9 +1,9 @@
+# provider.tf
 terraform {
-  required_version = ">= 1.4"
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 5.0"
+      version = "~> 5.0"          # 4.66 以上なら OK
     }
   }
 }
@@ -14,15 +14,13 @@ provider "aws" {
   secret_key        = var.use_localstack ? "test" : null
   s3_use_path_style = var.use_localstack
 
-  dynamic "endpoints" {
-    for_each = var.use_localstack ? toset([1]) : toset([])
-    content {
-      s3         = "http://localhost:4566"
-      lambda     = "http://localhost:4566"
-      apigateway = "http://localhost:4566"
-      iam        = "http://localhost:4566"
-      sts        = "http://localhost:4566"
-      ecr        = "http://localhost:4566"
-    }
+  ### ← ここを “ブロック” で書く ###
+  endpoints {
+    s3         = var.use_localstack ? "http://localhost:4566" : null
+    lambda     = var.use_localstack ? "http://localhost:4566" : null
+    apigateway = var.use_localstack ? "http://localhost:4566" : null
+    iam        = var.use_localstack ? "http://localhost:4566" : null
+    sts        = var.use_localstack ? "http://localhost:4566" : null
+    ecr        = var.use_localstack ? "http://localhost:4566" : null
   }
 }
