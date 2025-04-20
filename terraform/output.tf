@@ -5,3 +5,9 @@ output "api_invoke_url" {
 output "bucket_name" {
   value = aws_s3_bucket.images.bucket
 }
+
+variable "log_retention_days" {
+  description = "CloudWatch Logs retention in days"
+  type        = number
+  default     = 14
+}

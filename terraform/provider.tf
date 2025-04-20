@@ -22,5 +22,6 @@ provider "aws" {
     iam        = var.use_localstack ? "http://localhost:4566" : null
     sts        = var.use_localstack ? "http://localhost:4566" : null
     ecr        = var.use_localstack ? "http://localhost:4566" : null
+    logs       = var.use_localstack ? "http://localhost:4566" : null
   }
 }

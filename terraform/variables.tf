@@ -15,3 +15,15 @@ variable "region" {
   type        = string
   default     = "us-east-1"
 }
+
+variable "localstack_endpoint" {
+  description = "LocalStack edge endpoint"
+  type        = string
+  default     = "http://localhost:4566"
+}
+
+variable "log_group_name" {
+  description = "Name of the CloudWatch LogGroup"
+  type        = string
+  default     = "/ecs/img-api"
+}

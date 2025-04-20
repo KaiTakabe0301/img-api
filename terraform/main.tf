@@ -28,6 +28,11 @@ resource "aws_iam_role_policy_attachment" "lambda_policy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonS3FullAccess"
 }
 
+resource "aws_iam_role_policy_attachment" "lambda_basic" {     # ★ 追加
+  role       = aws_iam_role.lambda_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
 ############################
 #  Lambda Functions
 ############################
@@ -104,4 +109,20 @@ resource "aws_lambda_permission" "allow_get" {
   function_name = aws_lambda_function.image_getter.function_name
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${local.api_exec_arn}/*/*"
+}
+
+############################
+# LogGroup Resources
+############################
+resource "aws_cloudwatch_log_group" "handler_logs" {
+  name              = "/aws/lambda/${aws_lambda_function.image_handler.function_name}"
+  retention_in_days = var.log_retention_days
+  kms_key_id        = null     # 必要なら CMK を設定
+}
+
+# ★ Getter 用
+resource "aws_cloudwatch_log_group" "getter_logs" {
+  name              = "/aws/lambda/${aws_lambda_function.image_getter.function_name}"
+  retention_in_days = var.log_retention_days
+  kms_key_id        = null
 }
