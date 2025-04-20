@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "es2022",
+    "module": "es2022",
+    "moduleResolution": "node",
+    "strict": false,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+
+    /* ★ ここがポイント */
+    "rootDir": "src",
+    // "outDir": ".", // ＝ sam/ ディレクトリ直下へ出力
+    "declaration": false
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": [
+    "node_modules",
+    "**/*.spec.ts",
+    "**/*.test.ts",
+    "**/__tests__/*",
+    "**/__mocks__/*"
+  ]
+}

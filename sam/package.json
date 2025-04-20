@@ -4,15 +4,16 @@
   "main": "handler.js",
   "version": "1.0.0",
   "scripts": {
-    "build": "tsc"
+    "build": "tsc --build"
   },
   "dependencies": {
-    "aws-sdk": "2.1692.0",
+    "@aws-sdk/client-s3": "^3.787.0",
     "busboy": "1.6.0",
     "sharp": "0.34.1"
   },
   "devDependencies": {
     "@types/aws-lambda": "8.10.149",
+    "@types/busboy": "^1.5.4",
     "@types/node": "22.14.1",
     "typescript": "5.8.3"
   }
