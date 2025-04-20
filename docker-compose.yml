@@ -1,0 +1,17 @@
+version: "3.8"
+services:
+  localstack:
+    image: localstack/localstack:3
+    container_name: localstack
+    ports:
+      - "4566:4566" # すべてのサービス
+      - "4571:4571"
+    environment:
+      - SERVICES=s3,lambda,apigateway,iam,sts,ecr
+      - DEBUG=1
+      - LAMBDA_EXECUTOR=docker
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+    volumes:
+      - "./.localstack:/var/lib/localstack"
+      - "/var/run/docker.sock:/var/run/docker.sock"
