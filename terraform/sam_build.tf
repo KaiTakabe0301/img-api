@@ -1,7 +1,7 @@
 # SAM で zip 作成
 resource "null_resource" "sam_build" {
   provisioner "local-exec" {
-    command = "cd ../sam && sam build --use-container"
+    command = "cd ../sam && npm run build && sam build --use-container"
   }
 }
 
