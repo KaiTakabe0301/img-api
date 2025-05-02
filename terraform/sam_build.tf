@@ -1,5 +1,10 @@
 # SAM で zip 作成
 resource "null_resource" "sam_build" {
+  # Always run the SAM build when terraform apply is executed
+  triggers = {
+    always_run = "${timestamp()}"
+  }
+
   provisioner "local-exec" {
     command = "cd ../sam && npm run build && sam build --use-container"
   }
