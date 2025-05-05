@@ -3,6 +3,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { S3Service } from './services/s3.service';
 import { FileUpload } from 'graphql-upload-minimal';
 import { Image } from './entities/image.entity';
+import { toImageDto } from './mappers/image.mapper';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class ImagesService {
@@ -15,7 +17,7 @@ export class ImagesService {
     const { originalUrl, thumbnailUrl, filename, mimeType, size } = await this.s3Service.uploadImage(file, userId);
 
     // Save image metadata to database
-    const image = await this.prisma.image.create({
+    const dbImage = await this.prisma.image.create({
       data: {
         filename,
         originalUrl,
@@ -24,36 +26,47 @@ export class ImagesService {
         size,
         userId,
       },
+      include: {
+        user: true, // Include the user relation
+      },
     });
 
-    return image;
+    return toImageDto(dbImage);
   }
 
   async findAll(userId: string): Promise<Image[]> {
-    return this.prisma.image.findMany({
+    const dbImages = await this.prisma.image.findMany({
       where: {
         userId,
       },
       orderBy: {
         createdAt: 'desc',
       },
+      include: {
+        user: true, // Include the user relation
+      },
     });
+
+    return dbImages.map(toImageDto);
   }
 
   async findOne(id: string, userId: string): Promise<Image> {
-    const image = await this.prisma.image.findUnique({
+    const dbImage = await this.prisma.image.findUnique({
       where: { id },
+      include: {
+        user: true, // Include the user relation
+      },
     });
 
-    if (!image) {
+    if (!dbImage) {
       throw new NotFoundException(`Image with ID ${id} not found`);
     }
 
     // Check if the image belongs to the user
-    if (image.userId !== userId) {
+    if (dbImage.userId !== userId) {
       throw new ForbiddenException('You do not have permission to access this image');
     }
 
-    return image;
+    return toImageDto(dbImage);
   }
 }
