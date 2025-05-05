@@ -91,7 +91,7 @@ module "apigw_v2" {
 #  共通値 (invoke URL / exec ARN)
 ############################
 locals {
-  api_invoke_url  = var.use_localstack ? module.apigw_v1[0].invoke_url : module.apigw_v2[0].invoke_url
+  api_invoke_url  = var.use_localstack ? "http://${module.apigw_v1[0].rest_api_id}.execute-api.localhost.localstack.cloud:4566/${module.apigw_v1[0].stage_name}" : module.apigw_v2[0].invoke_url
   api_exec_arn    = var.use_localstack ? module.apigw_v1[0].execution_arn : module.apigw_v2[0].execution_arn
 }
 
