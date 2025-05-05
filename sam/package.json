@@ -1,5 +1,5 @@
 {
-  "name": "img-api",
+  "name": "@img-api/sam",
   "type": "module",
   "main": "handler.js",
   "version": "1.0.0",

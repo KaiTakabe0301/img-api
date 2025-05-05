@@ -1,0 +1,14 @@
+{
+  "name": "@img-api/shared",
+  "version": "1.0.0",
+  "description": "Shared types and utilities for img-api",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w"
+  },
+  "devDependencies": {
+    "typescript": "^5.2.2"
+  }
+}

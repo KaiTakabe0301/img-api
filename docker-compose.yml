@@ -15,3 +15,24 @@ services:
     volumes:
       - "./.localstack:/var/lib/localstack"
       - "/var/run/docker.sock:/var/run/docker.sock"
+
+  backend:
+    build:
+      context: .
+      dockerfile: packages/backend/Dockerfile
+    container_name: img-api-backend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./packages/backend:/app/packages/backend
+      - ./packages/shared:/app/packages/shared
+      - ./pnpm-workspace.yaml:/app/pnpm-workspace.yaml
+      - ./package.json:/app/package.json
+      - /app/node_modules
+      - /app/.pnpm-store
+      - /app/packages/backend/node_modules
+      - /app/packages/shared/node_modules
+    environment:
+      - NODE_ENV=development
+    depends_on:
+      - localstack
