@@ -24,6 +24,7 @@
     "dev": "npm run db:start && npm run start:dev"
   },
   "dependencies": {
+    "@apollo/server": "^4.12.0",
     "@nestjs/apollo": "^12.0.0",
     "@nestjs/common": "^10.0.0",
     "@nestjs/config": "^4.0.2",
