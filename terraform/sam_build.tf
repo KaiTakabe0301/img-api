@@ -2,11 +2,11 @@
 resource "null_resource" "sam_build" {
   # Always run the SAM build when terraform apply is executed
   triggers = {
-    always_run = "${timestamp()}"
+    src_hash = filesha256("${path.module}/../sam/src/handler.ts")
   }
 
   provisioner "local-exec" {
-    command = "cd ../sam && npm run build && sam build --use-container"
+    command = "cd ../sam && pnpm build && sam build --use-container"
   }
 }
 

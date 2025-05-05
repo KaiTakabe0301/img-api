@@ -70,6 +70,14 @@ resource "aws_api_gateway_deployment" "deploy" {
   rest_api_id = aws_api_gateway_rest_api.api.id
   stage_name  = "dev"
   depends_on  = [aws_api_gateway_integration.post, aws_api_gateway_integration.get]
+
+  triggers = {
+    redeploy = var.redeploy_trigger != "" ? var.redeploy_trigger : timestamp()
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 output "invoke_url"    { value = aws_api_gateway_deployment.deploy.invoke_url }

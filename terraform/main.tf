@@ -42,6 +42,7 @@ resource "aws_lambda_function" "image_handler" {
   runtime       = "nodejs20.x"
   handler       = "src/handler.upload"
   filename      = data.archive_file.lambda_zip.output_path
+  source_code_hash = data.archive_file.lambda_zip.output_base64sha256
   memory_size   = 512
   timeout       = 30
   environment { variables = { BUCKET = aws_s3_bucket.images.bucket } }
@@ -53,6 +54,7 @@ resource "aws_lambda_function" "image_getter" {
   runtime       = "nodejs20.x"
   handler       = "src/handler.get"
   filename      = data.archive_file.lambda_zip.output_path
+  source_code_hash = data.archive_file.lambda_zip.output_base64sha256
   memory_size   = 512
   timeout       = 30
   environment { variables = { BUCKET = aws_s3_bucket.images.bucket } }
@@ -70,6 +72,7 @@ module "apigw_v1" {
   name                = "img-api"
   lambda_upload_uri   = aws_lambda_function.image_handler.invoke_arn
   lambda_get_uri      = aws_lambda_function.image_getter.invoke_arn
+  redeploy_trigger    = data.archive_file.lambda_zip.output_base64sha256
 }
 
 module "apigw_v2" {
