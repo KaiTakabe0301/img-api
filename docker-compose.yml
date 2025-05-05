@@ -16,6 +16,30 @@ services:
       - "./.localstack:/var/lib/localstack"
       - "/var/run/docker.sock:/var/run/docker.sock"
 
+  postgres:
+    image: postgres:14
+    container_name: img-api-postgres
+    ports:
+      - "5433:5432"  # Changed host port to 5433
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: img_api
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # Add pgAdmin for database management (optional)
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: img-api-pgadmin
+    ports:
+      - "5050:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    depends_on:
+      - postgres
+
   backend:
     build:
       context: .
@@ -34,5 +58,17 @@ services:
       - /app/packages/shared/node_modules
     environment:
       - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/img_api?schema=public
+      - AWS_REGION=us-east-1
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - AWS_ENDPOINT=http://localstack:4566
+      - AWS_S3_FORCE_PATH_STYLE=true
+      - BUCKET=img-api-bucket
+      - JWT_SECRET=your-super-secret-jwt-key
     depends_on:
       - localstack
+      - postgres
+
+volumes:
+  postgres_data:

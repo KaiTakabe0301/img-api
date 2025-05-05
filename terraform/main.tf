@@ -60,6 +60,18 @@ resource "aws_lambda_function" "image_getter" {
   environment { variables = { BUCKET = aws_s3_bucket.images.bucket } }
 }
 
+resource "aws_lambda_function" "images_list" {
+  function_name = "img-api-list"
+  role          = aws_iam_role.lambda_role.arn
+  runtime       = "nodejs20.x"
+  handler       = "src/handler.getImages"
+  filename      = data.archive_file.lambda_zip.output_path
+  source_code_hash = data.archive_file.lambda_zip.output_base64sha256
+  memory_size   = 512
+  timeout       = 30
+  environment { variables = { BUCKET = aws_s3_bucket.images.bucket } }
+}
+
 ############################
 #  API Gateway モジュール
 ############################
@@ -72,6 +84,7 @@ module "apigw_v1" {
   name                = "img-api"
   lambda_upload_uri   = aws_lambda_function.image_handler.invoke_arn
   lambda_get_uri      = aws_lambda_function.image_getter.invoke_arn
+  lambda_list_uri     = aws_lambda_function.images_list.invoke_arn
   redeploy_trigger    = data.archive_file.lambda_zip.output_base64sha256
 }
 
@@ -85,6 +98,7 @@ module "apigw_v2" {
   name                = "img-api"
   lambda_upload_uri   = aws_lambda_function.image_handler.invoke_arn
   lambda_get_uri      = aws_lambda_function.image_getter.invoke_arn
+  lambda_list_uri     = aws_lambda_function.images_list.invoke_arn
 }
 
 ############################
@@ -114,6 +128,14 @@ resource "aws_lambda_permission" "allow_get" {
   source_arn    = "${local.api_exec_arn}/*/*"
 }
 
+resource "aws_lambda_permission" "allow_list" {
+  statement_id  = "AllowInvokeList"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.images_list.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${local.api_exec_arn}/*/*"
+}
+
 ############################
 # LogGroup Resources
 ############################
@@ -126,6 +148,13 @@ resource "aws_cloudwatch_log_group" "handler_logs" {
 # ★ Getter 用
 resource "aws_cloudwatch_log_group" "getter_logs" {
   name              = "/aws/lambda/${aws_lambda_function.image_getter.function_name}"
+  retention_in_days = var.log_retention_days
+  kms_key_id        = null
+}
+
+# ★ List 用
+resource "aws_cloudwatch_log_group" "list_logs" {
+  name              = "/aws/lambda/${aws_lambda_function.images_list.function_name}"
   retention_in_days = var.log_retention_days
   kms_key_id        = null
 }

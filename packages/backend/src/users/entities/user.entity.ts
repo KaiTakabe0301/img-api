@@ -1,4 +1,5 @@
 import { ObjectType, Field, ID } from '@nestjs/graphql';
+import { Image } from '../../images/entities/image.entity';
 
 @ObjectType()
 export class User {
@@ -6,13 +7,13 @@ export class User {
   id: string;
 
   @Field()
-  name: string;
-
-  @Field()
   email: string;
 
   @Field({ nullable: true })
-  avatarUrl?: string;
+  name?: string;
+
+  @Field(() => [Image], { nullable: true })
+  images?: Image[];
 
   @Field()
   createdAt: Date;
