@@ -6,7 +6,7 @@ import { PrismaModule } from "./prisma/prisma.module";
 import { AuthModule } from "./auth/auth.module";
 import { ImagesModule } from "./images/images.module";
 import { UsersModule } from "./users/users.module";
-import { graphqlUploadExpress } from "graphql-upload-minimal";
+import graphqlUploadExpress from "graphql-upload/graphqlUploadExpress.mjs";
 import { MiddlewareConsumer, NestModule } from "@nestjs/common";
 import { Request } from "express";
 import { ConfigModule } from "@nestjs/config";
@@ -24,6 +24,7 @@ import {
     GraphQLModule.forRoot<ApolloDriverConfig>({
       autoSchemaFile: join(process.cwd(), "src/schema.gql"),
       context: ({ req }: { req: Request }) => ({ req }),
+      csrfPrevention: false,
       driver: ApolloDriver,
       // graphqlのlanding pageを表示するための設定
       // graphql playgroundは非推奨なので、Apollo Sandboxを使用する

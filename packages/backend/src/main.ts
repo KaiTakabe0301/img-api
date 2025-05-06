@@ -1,7 +1,8 @@
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
-import { ValidationPipe } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { NestFactory } from "@nestjs/core";
+import { AppModule } from "./app.module";
+import { ValidationPipe } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
+import { json, urlencoded } from "express";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -11,6 +12,12 @@ async function bootstrap() {
 
   // Enable CORS
   app.enableCors();
+
+  // リクエストボディの最大サイズを増やす（例：50MB）
+  app.use(json({ limit: "50mb" }));
+
+  // GraphQLのアップロードにも対応するため
+  app.use(urlencoded({ extended: true, limit: "50mb" }));
 
   const port = process.env.PORT || 3000;
   await app.listen(port);

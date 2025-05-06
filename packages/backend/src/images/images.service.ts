@@ -1,20 +1,24 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { S3Service } from './services/s3.service';
-import { FileUpload } from 'graphql-upload-minimal';
-import { Image } from './entities/image.entity';
-import { toImageDto } from './mappers/image.mapper';
-import { Prisma } from '@prisma/client';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from "@nestjs/common";
+import { PrismaService } from "../prisma/prisma.service";
+import { S3Service } from "./services/s3.service";
+import { FileUpload } from "graphql-upload/GraphQLUpload.mjs";
+import { Image } from "./entities/image.entity";
+import { toImageDto } from "./mappers/image.mapper";
 
 @Injectable()
 export class ImagesService {
   constructor(
     private prisma: PrismaService,
-    private s3Service: S3Service,
+    private s3Service: S3Service
   ) {}
 
   async uploadImage(file: FileUpload, userId: string): Promise<Image> {
-    const { originalUrl, thumbnailUrl, filename, mimeType, size } = await this.s3Service.uploadImage(file, userId);
+    const { originalUrl, thumbnailUrl, filename, mimeType, size } =
+      await this.s3Service.uploadImage(file, userId);
 
     // Save image metadata to database
     const dbImage = await this.prisma.image.create({
@@ -40,7 +44,7 @@ export class ImagesService {
         userId,
       },
       orderBy: {
-        createdAt: 'desc',
+        createdAt: "desc",
       },
       include: {
         user: true, // Include the user relation
@@ -64,7 +68,9 @@ export class ImagesService {
 
     // Check if the image belongs to the user
     if (dbImage.userId !== userId) {
-      throw new ForbiddenException('You do not have permission to access this image');
+      throw new ForbiddenException(
+        "You do not have permission to access this image"
+      );
     }
 
     return toImageDto(dbImage);
