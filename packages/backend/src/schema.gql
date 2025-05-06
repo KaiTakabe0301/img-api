@@ -20,8 +20,6 @@ type Image {
   size: Float!
   thumbnailUrl: String
   updatedAt: DateTime!
-  user: User!
-  userId: String!
 }
 
 input LoginInput {
@@ -58,7 +56,6 @@ type User {
   createdAt: DateTime!
   email: String!
   id: ID!
-  images: [Image!]
   name: String
   updatedAt: DateTime!
 }
