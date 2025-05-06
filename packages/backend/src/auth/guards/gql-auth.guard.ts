@@ -1,4 +1,4 @@
-import { ExecutionContext, Injectable } from '@nestjs/common';
+import { ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
 import { GqlExecutionContext } from '@nestjs/graphql';
 import { AuthGuard } from '@nestjs/passport';
 
@@ -6,6 +6,21 @@ import { AuthGuard } from '@nestjs/passport';
 export class GqlAuthGuard extends AuthGuard('jwt') {
   getRequest(context: ExecutionContext) {
     const ctx = GqlExecutionContext.create(context);
-    return ctx.getContext().req;
+    const req = ctx.getContext().req;
+
+    // Authorization ヘッダーが存在するか確認
+    if (!req.headers.authorization) {
+      throw new UnauthorizedException('認証トークンが見つかりません。ログインしてください。');
+    }
+
+    return req;
+  }
+
+  handleRequest(err: any, user: any, info: any) {
+    // エラーがある場合や、ユーザーが見つからない場合
+    if (err || !user) {
+      throw err || new UnauthorizedException('認証に失敗しました。再度ログインしてください。');
+    }
+    return user;
   }
 }

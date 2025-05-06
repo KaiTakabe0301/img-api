@@ -38,6 +38,7 @@ type Mutation {
 type Query {
   image(id: ID!): Image!
   images: [Image!]!
+  me: User!
 }
 
 input SignupInput {

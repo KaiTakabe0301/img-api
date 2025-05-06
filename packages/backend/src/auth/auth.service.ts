@@ -5,12 +5,14 @@ import * as bcrypt from 'bcrypt';
 import { LoginInput } from './dto/login.input';
 import { SignupInput } from './dto/signup.input';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
+    private configService: ConfigService,
   ) {}
 
   async signup(signupInput: SignupInput): Promise<{ token: string }> {
