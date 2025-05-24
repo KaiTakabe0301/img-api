@@ -1,21 +1,22 @@
-import { Injectable } from "@nestjs/common";
-import * as AWS from "aws-sdk";
-import { v4 as uuid } from "uuid";
-import sharp from "sharp";
-import { FileUpload } from "graphql-upload/GraphQLUpload.mjs";
+import { Injectable, HttpException, HttpStatus } from "@nestjs/common";
+import { HttpService } from "@nestjs/axios";
+import { lastValueFrom } from "rxjs";
+import FormData from "form-data";
+
+// FileUpload型を直接定義
+interface FileUpload {
+  filename: string;
+  mimetype: string;
+  encoding: string;
+  createReadStream: () => NodeJS.ReadableStream;
+}
 
 @Injectable()
 export class S3Service {
-  private s3: AWS.S3;
+  private apiGatewayUrl: string;
 
-  constructor() {
-    this.s3 = new AWS.S3({
-      region: process.env.AWS_REGION || "us-east-1",
-      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-      endpoint: process.env.AWS_ENDPOINT,
-      s3ForcePathStyle: process.env.AWS_S3_FORCE_PATH_STYLE === "true",
-    });
+  constructor(private readonly httpService: HttpService) {
+    this.apiGatewayUrl = process.env.API_GATEWAY_URL || "http://localhost:4566/restapis/img-api/local/_user_request_";
   }
 
   async uploadImage(
@@ -28,54 +29,57 @@ export class S3Service {
     mimeType: string;
     size: number;
   }> {
-    console.log("Uploading image to S3...");
     const { createReadStream, filename, mimetype } = await file;
     const fileStream = createReadStream();
     const fileBuffer = await this.streamToBuffer(fileStream);
     const fileSize = fileBuffer.length;
 
-    // Generate a unique filename
-    const uniqueFilename = `${userId}/${uuid()}-${filename}`;
-    const bucketName = process.env.BUCKET || "img-api-bucket";
-
-    // Upload original image
-    await this.s3
-      .upload({
-        Bucket: bucketName,
-        Key: `original/${uniqueFilename}`,
-        Body: fileBuffer,
-        ContentType: mimetype,
-        ACL: "public-read",
-      })
-      .promise();
-
-    // Create thumbnail
-    const thumbnailBuffer = await sharp(fileBuffer)
-      .resize(200, 200, { fit: "inside" })
-      .toBuffer();
-
-    // Upload thumbnail
-    await this.s3
-      .upload({
-        Bucket: bucketName,
-        Key: `thumbnail/${uniqueFilename}`,
-        Body: thumbnailBuffer,
-        ContentType: mimetype,
-        ACL: "public-read",
-      })
-      .promise();
-
-    // Generate URLs
-    const originalUrl = `https://${bucketName}.s3.amazonaws.com/original/${uniqueFilename}`;
-    const thumbnailUrl = `https://${bucketName}.s3.amazonaws.com/thumbnail/${uniqueFilename}`;
-
-    return {
-      originalUrl,
-      thumbnailUrl,
+    // Create form data
+    const formData = new FormData();
+    formData.append("file", fileBuffer, {
       filename,
-      mimeType: mimetype,
-      size: fileSize,
-    };
+      contentType: mimetype,
+    });
+
+    try {
+      // Send request to API Gateway using HttpService
+      const response = await lastValueFrom(
+        this.httpService.post(`${this.apiGatewayUrl}/images`, formData, {
+          headers: {
+            ...formData.getHeaders(),
+            Authorization: `Bearer ${process.env.JWT_SECRET}`, // JWT token for authentication
+          },
+        })
+      );
+
+      const responseData = response.data as {
+        images: Array<{
+          id: string;
+          filename: string;
+          originalUrl: string;
+          thumbnailUrl: string;
+          mimeType: string;
+          size: number;
+        }>
+      };
+
+      // API Gateway returns an array of images, we take the first one
+      const image = responseData.images[0];
+
+      return {
+        originalUrl: image.originalUrl,
+        thumbnailUrl: image.thumbnailUrl,
+        filename: image.filename,
+        mimeType: image.mimeType,
+        size: image.size,
+      };
+    } catch (error) {
+      console.error("Error uploading image via API Gateway:", error);
+      throw new HttpException(
+        "Failed to upload image via API Gateway",
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
   }
 
   private async streamToBuffer(stream: NodeJS.ReadableStream): Promise<Buffer> {
