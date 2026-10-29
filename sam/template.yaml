@@ -7,7 +7,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       Handler: src/handler.upload
-      Runtime: nodejs20.x
+      Runtime: nodejs22.x
       MemorySize: 512
       Timeout: 30
       Architectures: [x86_64]

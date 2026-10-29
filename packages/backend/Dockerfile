@@ -1,4 +1,6 @@
-FROM node:18-alpine
+FROM node:22.23.4-alpine
+
+RUN apk add --no-cache ca-certificates && update-ca-certificates
 
 # Install pnpm
 RUN npm install -g pnpm
